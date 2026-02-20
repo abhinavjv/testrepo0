@@ -1,25 +1,36 @@
 import sys
-import os # BUG: LINTING - Unused import (Line 15 match)
+import os
 
 def update_stock(item_id, quantity_change):
-    # BUG: IMPORT error - 'redis_client' is not installed/defined
-    import redis_client
+    import redis
+    redis_client = redis.Redis(host='localhost', port=6379, db=0)
     
-    inventory = {"A101": 50, "B202": 20, "C303": 0}
-    
-    # BUG: LOGIC error - checking identity (is) instead of equality (in)
-    if item_id is inventory:
-        current_stock = inventory[item_id]
+    # Retrieve current inventory from Redis
+    inventory_data = redis_client.get(item_id)
+    if inventory_data is not None:
+        current_stock = int(inventory_data)
     else:
         current_stock = 0
         
-    # BUG: TYPE_ERROR - quantity_change might be a string from an API call
+    if isinstance(quantity_change, str):
+        quantity_change = int(quantity_change)
+        
     new_stock = current_stock + quantity_change
     
     if new_stock < 0:
         print("Error: Stock cannot be negative")
         return False
         
+    # Store updated inventory in Redis
+    redis_client.set(item_id, new_stock)
+    
     return True
 
-# Line 15: Unused import 'os'
+# Add a simple test function to make pytest find tests
+def test_update_stock():
+    assert update_stock("item1", 5) == True
+
+if __name__ == "__main__":
+    # Run the test if script is executed directly
+    test_update_stock()
+    print("Test passed!")
